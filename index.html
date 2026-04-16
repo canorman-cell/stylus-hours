@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Stylus Hours">
+<meta name="theme-color" content="#1a1a2e">
+<title>Stylus Hours</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0f0f1a; --surface: #1a1a2e; --card: #212135; --border: #2e2e50;
+    --accent: #c8a96e; --accent-dim: #8a6e40; --text: #f0ebe0; --muted: #7a7a9a;
+    --danger: #e07070; --success: #6ec8a0; --warning: #e0c070; --radius: 14px;
+  }
+  html, body { height: 100%; background: var(--bg); color: var(--text); font-family: 'DM Mono', monospace; font-size: 14px; -webkit-font-smoothing: antialiased; }
+  body { display: flex; flex-direction: column; min-height: 100vh; overflow-x: hidden; }
+
+  /* SETUP */
+  #setup-screen { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; padding: 32px 24px; text-align: center; }
+  #setup-screen h1 { font-family: 'DM Serif Display', serif; font-size: 26px; font-weight: 400; color: var(--accent); margin-bottom: 8px; }
+  #setup-screen .intro { font-size: 13px; color: var(--muted); line-height: 1.7; margin-bottom: 32px; max-width: 320px; }
+  .setup-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; width: 100%; max-width: 380px; text-align: left; margin-bottom: 16px; }
+  .setup-card h2 { font-family: 'DM Serif Display', serif; font-size: 15px; font-weight: 400; color: var(--text); margin-bottom: 6px; }
+  .setup-card p { font-size: 12px; color: var(--muted); line-height: 1.7; margin-bottom: 14px; }
+  .setup-card code { background: var(--bg); border: 1px solid var(--border); border-radius: 5px; padding: 2px 6px; font-size: 11px; color: var(--accent); word-break: break-all; }
+  .setup-input { width: 100%; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 11px 13px; font-family: 'DM Mono', monospace; font-size: 12px; color: var(--text); outline: none; transition: border-color 0.2s; }
+  .setup-input:focus { border-color: var(--accent-dim); }
+  .setup-input::placeholder { color: var(--muted); }
+  .save-btn { width: 100%; max-width: 380px; background: var(--accent); color: #0f0f1a; border: none; border-radius: 8px; padding: 13px; font-family: 'DM Mono', monospace; font-size: 14px; font-weight: 500; cursor: pointer; letter-spacing: 0.04em; transition: opacity 0.2s; }
+  .save-btn:active { opacity: 0.8; }
+
+  /* APP */
+  #app-screen { display: none; flex-direction: column; min-height: 100vh; }
+  header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 20px 20px 16px; position: sticky; top: 0; z-index: 10; }
+  .header-top { display: flex; align-items: flex-start; justify-content: space-between; }
+  h1.app-title { font-family: 'DM Serif Display', serif; font-size: 22px; font-weight: 400; color: var(--accent); line-height: 1.2; }
+  .subtitle { font-size: 11px; color: var(--muted); margin-top: 3px; letter-spacing: 0.04em; }
+  .needle-icon { width: 36px; height: 36px; opacity: 0.7; cursor: pointer; flex-shrink: 0; }
+  .total-bar { margin-top: 16px; background: var(--card); border-radius: var(--radius); padding: 14px 16px; border: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+  .total-label { font-size: 11px; color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase; }
+  .total-value { font-size: 28px; font-weight: 500; color: var(--accent); letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+  .total-sub { font-size: 20px; font-weight: 500; color: var(--text); margin-top: 2px; text-align: right; }
+  .wear-bar-wrap { margin-top: 10px; height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; }
+  .wear-bar-fill { height: 100%; border-radius: 2px; background: var(--accent); transition: width 0.6s ease; }
+  .wear-label { font-size: 10px; color: var(--muted); margin-top: 5px; letter-spacing: 0.04em; }
+  .sync-pill { display: inline-flex; align-items: center; gap: 6px; font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; padding: 3px 9px; border-radius: 20px; margin-top: 10px; border: 1px solid var(--border); color: var(--muted); transition: color 0.3s, border-color 0.3s; }
+  .sync-pill.syncing { color: var(--warning); border-color: var(--warning); }
+  .sync-pill.ok { color: var(--success); border-color: var(--success); }
+  .sync-pill.error { color: var(--danger); border-color: var(--danger); }
+  .sync-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+  .sync-dot.pulse { animation: pulse 1s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1}50%{opacity:0.3} }
+  main { flex: 1; padding: 20px; display: flex; flex-direction: column; gap: 20px; }
+  .form-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px; }
+  .form-card h2 { font-family: 'DM Serif Display', serif; font-size: 15px; font-weight: 400; color: var(--text); margin-bottom: 14px; }
+  .field { margin-bottom: 12px; }
+  label { display: block; font-size: 10px; color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 6px; }
+  input[type="text"], input[type="number"] { width: 100%; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; font-family: 'DM Mono', monospace; font-size: 15px; color: var(--text); outline: none; transition: border-color 0.2s; -webkit-appearance: none; appearance: none; }
+  input::placeholder { color: var(--muted); }
+  input:focus { border-color: var(--accent-dim); }
+  .duration-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+  .duration-field label { margin-bottom: 4px; }
+  .add-btn { width: 100%; background: var(--accent); color: #0f0f1a; border: none; border-radius: 8px; padding: 13px; font-family: 'DM Mono', monospace; font-size: 14px; font-weight: 500; cursor: pointer; letter-spacing: 0.04em; margin-top: 4px; transition: opacity 0.2s, transform 0.1s; -webkit-tap-highlight-color: transparent; }
+  .add-btn:active { opacity: 0.8; transform: scale(0.98); }
+  .add-btn:disabled { opacity: 0.45; }
+  .log-section h2 { font-family: 'DM Serif Display', serif; font-size: 15px; font-weight: 400; color: var(--text); }
+  .log-count { font-size: 11px; color: var(--muted); }
+  .log-header { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 14px; }
+  .clear-btn { background: none; border: 1px solid var(--border); color: var(--muted); border-radius: 6px; padding: 4px 10px; font-family: 'DM Mono', monospace; font-size: 11px; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+  .clear-btn:active { opacity: 0.6; }
+  .empty-state { text-align: center; color: var(--muted); font-size: 13px; padding: 40px 0; line-height: 1.8; }
+  .log-list { display: flex; flex-direction: column; gap: 8px; }
+  .log-item { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; display: flex; align-items: center; justify-content: space-between; animation: fadeIn 0.25s ease; }
+  @keyframes fadeIn { from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)} }
+  .log-left { flex: 1; min-width: 0; }
+  .log-album { font-size: 14px; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 3px; }
+  .log-date { font-size: 10px; color: var(--muted); letter-spacing: 0.04em; }
+  .log-duration { font-size: 16px; font-weight: 500; color: var(--accent); white-space: nowrap; margin-left: 12px; font-variant-numeric: tabular-nums; }
+  .delete-btn { background: none; border: none; color: var(--muted); font-size: 18px; cursor: pointer; padding: 4px 0 4px 10px; line-height: 1; -webkit-tap-highlight-color: transparent; flex-shrink: 0; }
+  .delete-btn:active { color: var(--danger); }
+  .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(80px); background: var(--success); color: #0f1a14; border-radius: 30px; padding: 10px 20px; font-size: 13px; font-weight: 500; transition: transform 0.3s ease; z-index: 100; white-space: nowrap; }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+  .toast.err { background: var(--danger); color: #1a0f0f; }
+</style>
+</head>
+<body>
+
+<div id="setup-screen">
+  <h1>Stylus Hours</h1>
+  <p class="intro">Paste your Google Apps Script URL below to connect your Google Sheet. You only need to do this once per device.</p>
+  <div class="setup-card">
+    <h2>Apps Script web app URL</h2>
+    <p>After completing the setup guide, paste your deployment URL here. It will look like:<br><br>
+    <code>https://script.google.com/macros/s/AKfy…/exec</code></p>
+    <input class="setup-input" type="text" id="script-url-input" placeholder="https://script.google.com/macros/s/…/exec" autocomplete="off" autocorrect="off" spellcheck="false">
+  </div>
+  <button class="save-btn" onclick="saveScriptUrl()">Connect &amp; open app</button>
+</div>
+
+<div id="app-screen">
+  <header>
+    <div class="header-top">
+      <div>
+        <h1 class="app-title">Stylus Hours</h1>
+        <div class="subtitle">turntable wear tracker</div>
+      </div>
+      <svg class="needle-icon" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg" onclick="showSetup()" title="Change settings">
+        <circle cx="18" cy="18" r="17" stroke="#c8a96e" stroke-width="1"/>
+        <circle cx="18" cy="18" r="10" stroke="#c8a96e" stroke-width="0.75" opacity="0.5"/>
+        <circle cx="18" cy="18" r="3" stroke="#c8a96e" stroke-width="0.75" opacity="0.5"/>
+        <circle cx="18" cy="18" r="1.5" fill="#c8a96e"/>
+        <line x1="18" y1="18" x2="9" y2="10" stroke="#c8a96e" stroke-width="1.5" stroke-linecap="round"/>
+      </svg>
+    </div>
+    <div class="total-bar">
+      <div>
+        <div class="total-label">Total stylus time</div>
+        <div class="total-value" id="total-display">0h 00m</div>
+      </div>
+      <div style="text-align:right">
+        <div class="total-label">Albums logged</div>
+        <div class="total-sub" id="album-count">0</div>
+      </div>
+    </div>
+    <div class="wear-bar-wrap"><div class="wear-bar-fill" id="wear-bar" style="width:0%"></div></div>
+    <div class="wear-label" id="wear-label">typical stylus life: ~1000 hours</div>
+    <div class="sync-pill" id="sync-pill">
+      <span class="sync-dot" id="sync-dot"></span>
+      <span id="sync-text">connecting…</span>
+    </div>
+  </header>
+
+  <main>
+    <div class="form-card">
+      <h2>Log a play</h2>
+      <div class="field">
+        <label>Album title</label>
+        <input type="text" id="album-title" placeholder="Artist — Album name" autocomplete="off" autocorrect="off" spellcheck="false">
+      </div>
+      <div class="field">
+        <label>Duration</label>
+        <div class="duration-row">
+          <div class="duration-field">
+            <label>Hours</label>
+            <input type="number" id="dur-h" placeholder="0" min="0" max="9">
+          </div>
+          <div class="duration-field">
+            <label>Minutes</label>
+            <input type="number" id="dur-m" placeholder="45" min="0" max="59">
+          </div>
+          <div class="duration-field">
+            <label>Seconds</label>
+            <input type="number" id="dur-s" placeholder="0" min="0" max="59">
+          </div>
+        </div>
+      </div>
+      <button class="add-btn" id="add-btn" onclick="addEntry()">+ Add to log</button>
+    </div>
+
+    <div class="log-section">
+      <div class="log-header">
+        <h2>Play history <span class="log-count" id="log-count"></span></h2>
+        <button class="clear-btn" onclick="clearAll()">Clear all</button>
+      </div>
+      <div id="log-list"></div>
+    </div>
+  </main>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const SCRIPT_KEY = 'stylus_script_url';
+const CACHE_KEY  = 'stylus_cache_v2';
+let SCRIPT_URL = '';
+let entries = [];
+
+function init() {
+  SCRIPT_URL = localStorage.getItem(SCRIPT_KEY) || '';
+  if (SCRIPT_URL) { showApp(); loadFromSheet(); }
+  else { document.getElementById('setup-screen').style.display = 'flex'; }
+}
+
+function saveScriptUrl() {
+  const val = document.getElementById('script-url-input').value.trim();
+  if (!val.startsWith('https://script.google.com')) {
+    showToast('Please paste a valid Apps Script URL', true); return;
+  }
+  SCRIPT_URL = val;
+  localStorage.setItem(SCRIPT_KEY, SCRIPT_URL);
+  showApp();
+  loadFromSheet();
+}
+
+function showSetup() {
+  document.getElementById('app-screen').style.display = 'none';
+  document.getElementById('setup-screen').style.display = 'flex';
+  document.getElementById('script-url-input').value = SCRIPT_URL;
+}
+
+function showApp() {
+  document.getElementById('setup-screen').style.display = 'none';
+  document.getElementById('app-screen').style.display = 'flex';
+}
+
+function setSyncStatus(state, text) {
+  const pill = document.getElementById('sync-pill');
+  const dot  = document.getElementById('sync-dot');
+  pill.className = 'sync-pill ' + state;
+  dot.className  = 'sync-dot' + (state === 'syncing' ? ' pulse' : '');
+  document.getElementById('sync-text').textContent = text;
+}
+
+async function sheetRequest(payload) {
+  let url = SCRIPT_URL;
+  let options = { method: 'POST', body: JSON.stringify(payload) };
+  if (payload.action === 'get') {
+    url = SCRIPT_URL + '?action=get';
+    options = { method: 'GET' };
+  }
+  const res = await fetch(url, options);
+  const data = await res.json();
+  if (data.error) throw new Error(data.error);
+  return data;
+}
+
+async function loadFromSheet() {
+  setSyncStatus('syncing', 'loading…');
+  try {
+    const data = await sheetRequest({ action: 'get' });
+    entries = data.entries || [];
+    localStorage.setItem(CACHE_KEY, JSON.stringify(entries));
+    setSyncStatus('ok', 'synced with sheets');
+  } catch(e) {
+    const cached = localStorage.getItem(CACHE_KEY);
+    if (cached) entries = JSON.parse(cached);
+    setSyncStatus('error', 'offline — showing cached data');
+  }
+  render();
+}
+
+async function addEntry() {
+  const title = document.getElementById('album-title').value.trim();
+  const h = parseInt(document.getElementById('dur-h').value) || 0;
+  const m = parseInt(document.getElementById('dur-m').value) || 0;
+  const s = parseInt(document.getElementById('dur-s').value) || 0;
+  const secs = h * 3600 + m * 60 + s;
+  if (!title) { document.getElementById('album-title').focus(); return; }
+  if (secs === 0) { document.getElementById('dur-m').focus(); return; }
+
+  const btn = document.getElementById('add-btn');
+  btn.disabled = true;
+  setSyncStatus('syncing', 'saving…');
+
+  const entry = { title, seconds: secs, ts: Date.now(), rowId: Date.now().toString() };
+  entries.push(entry);
+  render();
+  document.getElementById('album-title').value = '';
+  document.getElementById('dur-h').value = '';
+  document.getElementById('dur-m').value = '';
+  document.getElementById('dur-s').value = '';
+
+  try {
+    await sheetRequest({ action: 'add', entry });
+    localStorage.setItem(CACHE_KEY, JSON.stringify(entries));
+    setSyncStatus('ok', 'synced with sheets');
+    showToast('Added — ' + fmtDur(secs));
+  } catch(e) {
+    entries.pop(); render();
+    setSyncStatus('error', 'save failed');
+    showToast('Could not save to sheet', true);
+  }
+  btn.disabled = false;
+  document.getElementById('album-title').focus();
+}
+
+async function deleteEntry(rowId) {
+  const idx = entries.findIndex(e => e.rowId === rowId);
+  if (idx === -1) return;
+  if (!confirm('Remove "' + entries[idx].title + '"?')) return;
+  const removed = entries.splice(idx, 1)[0];
+  render();
+  setSyncStatus('syncing', 'deleting…');
+  try {
+    await sheetRequest({ action: 'delete', rowId });
+    localStorage.setItem(CACHE_KEY, JSON.stringify(entries));
+    setSyncStatus('ok', 'synced with sheets');
+  } catch(e) {
+    entries.splice(idx, 0, removed); render();
+    setSyncStatus('error', 'delete failed');
+    showToast('Could not delete from sheet', true);
+  }
+}
+
+async function clearAll() {
+  if (!entries.length) return;
+  if (!confirm('Clear all ' + entries.length + ' entries? This cannot be undone.')) return;
+  const backup = [...entries];
+  entries = []; render();
+  setSyncStatus('syncing', 'clearing…');
+  try {
+    await sheetRequest({ action: 'clear' });
+    localStorage.setItem(CACHE_KEY, JSON.stringify([]));
+    setSyncStatus('ok', 'synced with sheets');
+  } catch(e) {
+    entries = backup; render();
+    setSyncStatus('error', 'clear failed');
+    showToast('Could not clear sheet', true);
+  }
+}
+
+function totalSeconds() { return entries.reduce((s, e) => s + (e.seconds || 0), 0); }
+
+function fmtDur(secs) {
+  const h = Math.floor(secs / 3600), m = Math.floor((secs % 3600) / 60), s = secs % 60;
+  if (h > 0) return h + ':' + String(m).padStart(2,'0') + ':' + String(s).padStart(2,'0');
+  return String(m).padStart(2,'0') + ':' + String(s).padStart(2,'0');
+}
+
+function render() {
+  const total = totalSeconds();
+  const h = Math.floor(total / 3600), m = Math.floor((total % 3600) / 60);
+  document.getElementById('total-display').textContent = h + 'h ' + String(m).padStart(2,'0') + 'm';
+  document.getElementById('album-count').textContent = entries.length;
+  document.getElementById('log-count').textContent = entries.length ? '(' + entries.length + ')' : '';
+  const pct = Math.min(100, (total / 3600000) * 100);
+  document.getElementById('wear-bar').style.width = pct.toFixed(1) + '%';
+  const used = (total / 3600).toFixed(1), rem = Math.max(0, 1000 - total / 3600).toFixed(0);
+  document.getElementById('wear-label').textContent = used + 'h used — ~' + rem + 'h remaining (1000h typical life)';
+
+  const list = document.getElementById('log-list');
+  if (!entries.length) {
+    list.innerHTML = '<div class="empty-state">No plays logged yet.<br>Add your first album above.</div>';
+    return;
+  }
+  list.innerHTML = [...entries].reverse().map(e => {
+    const d = new Date(e.ts);
+    const ds = d.toLocaleDateString('en-GB', {day:'numeric',month:'short',year:'numeric'}) +
+               ' · ' + d.toLocaleTimeString('en-GB', {hour:'2-digit',minute:'2-digit'});
+    return `<div class="log-item">
+      <div class="log-left">
+        <div class="log-album">${esc(e.title)}</div>
+        <div class="log-date">${ds}</div>
+      </div>
+      <div class="log-duration">${fmtDur(e.seconds)}</div>
+      <button class="delete-btn" onclick="deleteEntry('${esc(e.rowId)}')">×</button>
+    </div>`;
+  }).join('');
+}
+
+function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+let toastTimer;
+function showToast(msg, isErr) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast' + (isErr ? ' err' : '') + ' show';
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2400);
+}
+
+init();
+</script>
+</body>
+</html>
